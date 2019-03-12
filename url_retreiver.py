@@ -8,7 +8,7 @@ import os
 
 class URL_Retreiver():
         
-    def __init__(self, source):
+    def __init__(self, source: str):
         self.source = source
         self.URLs = []
         self.pageSoup = None
@@ -31,10 +31,11 @@ class URL_Retreiver():
                 self.URLs.append(a.group())
 
     def get_ip(self):
-        for i in self.URLs:
+        for url in self.URLs:
             try:
-                address = socket.gethostbyname(i)
+                address = socket.gethostbyname(url)
             except:
+                print(f"Failed to resolve: {url}")
                 continue
             self.ipAddresses.append(address)   
 
