@@ -8,7 +8,17 @@ import os
 import url_retreiver
 
 
+'''
+The base class for all of the other sender classes.
 
+Attributes:
+	endpoints - List of IP's that will be used to bounce the packets off. Current implementation uses
+				the URL_Retreiver class. This will pull the URL's from a supplied source 
+				e.g. "https://moz.com/top500".
+	receiver_address - IP address of the message recipient.
+	receiver_port - Port that the message recipient is listening for message on.
+	bounce_port - The port that will be used to bounce the packets off. Default is 443.
+'''
 class Sender():
 	def __init__(self, receiver_address: str, receiver_port: int, URL_src: str, bounce_port=443):
 		self.endpoints = url_retreiver.URL_Retreiver(URL_src)
@@ -61,5 +71,8 @@ class Block_Sender(Sender):
 
 
 if __name__ == "__main__":
-	Block_Sender("10.10.10.10", 15, 443, 'https://moz.com/top500').send("Hello World!")
+	Block_Sender(receiver_address="10.10.10.10", 
+					receiver_port=15,
+					URL_src='https://moz.com/top500', 
+					bounce_port=443).send("Hello World!")
 
