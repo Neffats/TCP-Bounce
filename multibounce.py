@@ -18,10 +18,11 @@ Attributes:
 	bounce_port - The port that will be used to bounce the packets off. Default is 443.
 '''
 class Sender():
-	def __init__(self, receiver_address: str, receiver_port: int, bounce_endpoints: list, bounce_port=443):
+	def __init__(self, receiver_address: str, receiver_message_port: int, receiver_init_port: int, bounce_endpoints: list, bounce_port=443):
 		self.bounce_endpoints = bounce_endpoints
 		self.receiver_address = receiver_address
-		self.receiver_port = receiver_port
+		self.receiver_message_port = receiver_message_port
+		self.receiver_init_port = receiver_init_port
 		self.bounce_port = bounce_port
 
 
@@ -73,6 +74,9 @@ class Block_Sender(Sender):
 			new_block = self.add_header(message_block=new_block, header_type='DATA')
 			message_blocks.append(new_block)
 			message_index += self.BLOCK_SZ
+
+
+		self.send_block()
 		for block in message_blocks:
 			if not unused_endpoints:
 				unused_endpoints = used_endpoints[:]
@@ -121,6 +125,11 @@ class Block_Sender(Sender):
 		print(f"Sending block: {block} ----> {self.decode_block(block)} to {bounce_address}\nHeader: {self.get_header(block)}")
 		send(IP(src=self.receiver_address, dst=bounce_address)/TCP(sport=self.receiver_port, dport=self.bounce_port, seq=block, flags="S"))
 		return True
+
+	def send_innit(self, innit_data: int, bounce_address: str) -> bool:
+		print(f"Sending block: {block} ----> {self.decode_block(block)} to {bounce_address}\nHeader: {self.get_header(block)}")
+		send(IP(src=self.receiver_address, dst=bounce_address)/TCP(sport=self.receiver_port, dport=self.bounce_port, seq=block, flags="S"))
+		return True		
 
 
 
