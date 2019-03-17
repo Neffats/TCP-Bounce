@@ -54,7 +54,7 @@ class Block_Sender(Sender):
 		Sender.__init__(self, receiver_address, receiver_port, bounce_endpoints, bounce_port)
 		self.BLOCK_SZ = 3
 		self.CHAR_MASKS = [0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF]
-		self.CONTROL_HEADERS = {'TEST': 268435456}
+		self.CONTROL_HEADERS = {'DATA': 268435456}
 		self.TYPE_CODE = 0x01
 
 	def get_receiver_address(self):
@@ -70,7 +70,7 @@ class Block_Sender(Sender):
 
 		while message_index < len(message):
 			new_block = self.encode_block(message[message_index:message_index + self.BLOCK_SZ])
-			new_block = self.add_header(message_block=new_block, header_type='TEST')
+			new_block = self.add_header(message_block=new_block, header_type='DATA')
 			message_blocks.append(new_block)
 			message_index += self.BLOCK_SZ
 		for block in message_blocks:
@@ -110,13 +110,12 @@ class Block_Sender(Sender):
 	def generate_init(self, message: str, port: int) -> int:
 		msg_length = len(message)
 		init_packet = 0x00000000
-		init_packet = init_packet & self.TYPE_CODE
-		init_packet = init_packet << 8
-		init_packet = init_packet & msg_length
-		init_packet = init_packet << 8
-		init_packet = init_packet & port
+		init_packet = init_packet | self.TYPE_CODE
+		init_packet = init_packet << 12
+		init_packet = init_packet | msg_length
+		init_packet = init_packet << 16
+		init_packet = init_packet | port
 		return init_packet
-
 
 	def send_block(self, block: int, bounce_address: str) -> bool:
 		print(f"Sending block: {block} ----> {self.decode_block(block)} to {bounce_address}\nHeader: {self.get_header(block)}")
@@ -124,12 +123,18 @@ class Block_Sender(Sender):
 		return True
 
 
+
 if __name__ == "__main__":
 	be = ['8.8.8.8', '151.101.64.81', '35.157.233.18']
+	pi = ['192.168.1.121']
 
-	bs = Block_Sender(receiver_address="10.10.10.10", receiver_port=15,	bounce_endpoints=be, bounce_port=443)
+	bs = Block_Sender(receiver_address="192.168.1.70", receiver_port=1337, bounce_endpoints=pi, bounce_port=22)
 
-	print(bs.generate_init("Hello World!", 80))
+	innit = bs.generate_init("Hello World!", 80)
+
+	print(innit)
+
+	bs.send_block(innit, '192.168.1.121')
 
 	bs.send("Hello World!")
 
