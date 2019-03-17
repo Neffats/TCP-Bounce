@@ -111,10 +111,6 @@ class Block_Sender(Sender):
 		msg_length = len(message)
 		init_packet = 0x00000000
 		init_packet = init_packet | self.TYPE_CODE
-		init_packet = init_packet << 8
-		init_packet = init_packet | msg_length
-		init_packet = init_packet << 8
-		init_packet = init_packet | port
 		return init_packet
 
 
