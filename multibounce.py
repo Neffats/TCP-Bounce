@@ -51,8 +51,8 @@ Step 3:
 
 '''
 class Block_Sender(Sender):
-	def __init__(self, receiver_address: str, receiver_port: int, bounce_endpoints: str, bounce_port: int):
-		Sender.__init__(self, receiver_address, receiver_port, bounce_endpoints, bounce_port)
+	def __init__(self, receiver_address: str, receiver_message_port: int, receiver_init_port: int, bounce_endpoints: list, bounce_port: int):
+		Sender.__init__(self, receiver_address, receiver_message_port, receiver_init_port, bounce_endpoints, bounce_port)
 		self.BLOCK_SZ = 3
 		self.CHAR_MASKS = [0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF]
 		self.CONTROL_HEADERS = {'DATA': 268435456}
@@ -75,15 +75,17 @@ class Block_Sender(Sender):
 			message_blocks.append(new_block)
 			message_index += self.BLOCK_SZ
 
-
-		self.send_block()
+		bounce_endpoint = unused_endpoints.pop()
+		message_init = self.generate_init(message, self.receiver_init_port)
+		self.send_init(message_init, bounce_endpoint)
+		used_endpoints.append(bounce_endpoint)
 		for block in message_blocks:
 			if not unused_endpoints:
 				unused_endpoints = used_endpoints[:]
 				used_endpoints = []
-			bounce = unused_endpoints.pop()
-			block_result = self.send_block(block=block, bounce_address=bounce)
-			used_endpoints.append(bounce)
+			bounce_endpoint = unused_endpoints.pop()
+			block_result = self.send_block(block=block, bounce_address=bounce_endpoint)
+			used_endpoints.append(bounce_endpoint)
 			print(f"Block send success: {block_result}")
 
 	def encode_block(self, letters: str) -> int:
@@ -124,12 +126,12 @@ class Block_Sender(Sender):
 
 	def send_block(self, block: int, bounce_address: str) -> bool:
 		print(f"Sending block: {block} ----> {self.decode_block(block)} to {bounce_address}\nHeader: {self.get_header(block)}")
-		send(IP(src=self.receiver_address, dst=bounce_address)/TCP(sport=self.receiver_port, dport=self.bounce_port, seq=block, flags="S"))
+		send(IP(src=self.receiver_address, dst=bounce_address)/TCP(sport=self.receiver_message_port, dport=self.bounce_port, seq=block, flags="S"))
 		return True
 
-	def send_innit(self, innit_data: int, bounce_address: str) -> bool:
-		print(f"Sending block: {block} ----> {self.decode_block(block)} to {bounce_address}\nHeader: {self.get_header(block)}")
-		send(IP(src=self.receiver_address, dst=bounce_address)/TCP(sport=self.receiver_port, dport=self.bounce_port, seq=block, flags="S"))
+	def send_init(self, init_data: int, bounce_address: str) -> bool:
+		print(f"Sending block: {init_data}")
+		send(IP(src=self.receiver_address, dst=bounce_address)/TCP(sport=self.receiver_init_port, dport=self.bounce_port, seq=init_data, flags="S"))
 		return True		
 
 
@@ -138,13 +140,13 @@ if __name__ == "__main__":
 	be = ['8.8.8.8', '151.101.64.81', '35.157.233.18']
 	pi = ['192.168.1.121']
 
-	bs = Block_Sender(receiver_address="192.168.1.70", receiver_port=1337, bounce_endpoints=pi, bounce_port=22)
+	bs = Block_Sender(receiver_address="192.168.1.70", receiver_message_port=3000, receiver_init_port=1337, bounce_endpoints=pi, bounce_port=22)
 
 	innit = bs.generate_init("Hello World!", 80)
 
 	print(innit)
 
-	bs.send_block(innit, '192.168.1.121')
+	#bs.send_block(innit, '192.168.1.121')
 
 	bs.send("Hello World!")
 

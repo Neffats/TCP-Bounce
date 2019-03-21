@@ -24,7 +24,7 @@ class Bounce_Server():
 	def run_handling_thread(self):
 		self.the_end = threading.Event()
 
-		logging.debug("Starting server on.....")
+		logging.debug("Starting handler thread.....")
 		logging.debug(f"Listening on port {self.listen_port}")
 
 		while not self.the_end.is_set():
@@ -78,7 +78,11 @@ class Bounce_Server():
 		innit_data['port'] = payload & self.INIT_MASKS['PORT']
 		return innit_data
 
-
+class Block_Listener(threading.Thread):
+	def __init__(self, listen_port: int, message_len: int):
+		threading.Thread.__init__(self)
+		self.listen_port = listen_port
+		self.message_len = message_len
 
 
 if __name__ == '__main__':
