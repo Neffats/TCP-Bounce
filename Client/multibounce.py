@@ -78,6 +78,7 @@ class Block_Sender(Sender):
 		bounce_endpoint = unused_endpoints.pop()
 		message_init = self.generate_init(message, self.receiver_message_port)
 		self.send_init(message_init, bounce_endpoint)
+		time.sleep(1)
 		used_endpoints.append(bounce_endpoint)
 		for block in message_blocks:
 			if not unused_endpoints:
@@ -140,7 +141,7 @@ if __name__ == "__main__":
 	be = ['8.8.8.8', '151.101.64.81', '35.157.233.18']
 	pi = ['192.168.1.121']
 
-	bs = Block_Sender(receiver_address="192.168.1.70", receiver_message_port=3000, receiver_init_port=1337, bounce_endpoints=be, bounce_port=22)
+	bs = Block_Sender(receiver_address="192.168.1.70", receiver_message_port=3000, receiver_init_port=1337, bounce_endpoints=be, bounce_port=443)
 
 	innit = bs.generate_init("Hello World!", 80)
 
