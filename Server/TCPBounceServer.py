@@ -1,22 +1,37 @@
+import logging
 from scapy.all import *
 import time
 import os
 import threading
 import queue
-import logging
 import consts
+import keyboard
 
 
 class Server():
 	def __init__(self, listen_port: int) -> None:
 		self.listen_port = listen_port
 		self.reciever_queue = queue.Queue()
+		self.end = False
 
 	def run(self) -> None:
 		logging.debug("Starting main listener thread....")
 		self.main_listener = MainListener(listen_port=self.listen_port, root_queue=self.reciever_queue)
 		self.main_listener.daemon = True
 		self.main_listener.start()
+
+		while not self.end:
+			if keyboard.is_pressed('q'):
+				print("Goodbye.....")
+				self.kill()
+				self.end = True
+				break
+			try:
+				msg = self.reciever_queue.get_nowait()
+				print(msg)
+			except queue.Empty:
+				continue
+
 
 		#self.main_listener.join()
 
@@ -67,7 +82,7 @@ class MainListener(threading.Thread):
 		self.sessions.append(new_session)
 
 	def send_RST(self, address: str, port: int) -> None:
-		send(IP(dst=address)/TCP(dport=port, flags="R"))
+		send(IP(dst=address)/TCP(dport=port, flags="R"), verbose=False)
 
 	def kill(self) -> None:
 		# Kill self
@@ -161,21 +176,27 @@ class BlockSessionListener(threading.Thread):
 				logging.info("Session communications queue is empty...")
 				continue
 
+			header = self.get_header(segment)
+
+			if header == consts.CONTROL_HEADERS['END']:
+				logging.info("Received END header. Message: %s", self.message)
+				self.root_th_queue.put(self.message)
+				self.kill()
+				break
 			self.message += self.decode_block(segment)
 
 	def send_RST(self, address: str, port: int) -> None:
-		send(IP(dst=address)/TCP(dport=port, flags="R"))
+		send(IP(dst=address)/TCP(dport=port, flags="R"), verbose=False)
 
 	def kill(self):
 		# Kill children
 		self.listen_th_end.set()
 		self.process_th_end.set()
 
+	def get_header(self, message_block: int) -> int:
+		return (message_block & consts.CHAR_MASKS[0]) >> 28
+
 if __name__ == '__main__':
 	logging.getLogger().setLevel(logging.DEBUG)
 	serv = Server(listen_port=1337)
 	serv.run()
-
-	e = input()
-	if e == 'q':
-		serv.kill()

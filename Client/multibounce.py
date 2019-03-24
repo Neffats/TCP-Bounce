@@ -6,6 +6,7 @@ import re
 import socket
 import os
 import url_retreiver
+import consts
 
 
 '''
@@ -53,10 +54,6 @@ Step 3:
 class Block_Sender(Sender):
 	def __init__(self, receiver_address: str, receiver_message_port: int, receiver_init_port: int, bounce_endpoints: list, bounce_port: int):
 		Sender.__init__(self, receiver_address, receiver_message_port, receiver_init_port, bounce_endpoints, bounce_port)
-		self.BLOCK_SZ = 3
-		self.CHAR_MASKS = [0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF]
-		self.CONTROL_HEADERS = {'DATA': 268435456}
-		self.TYPE_CODE = 0x01
 
 	def get_receiver_address(self):
 		return self.receiver_address
@@ -70,14 +67,14 @@ class Block_Sender(Sender):
 		assert(type(message) == str), "Message for Block_Sender must be a string."
 
 		while message_index < len(message):
-			new_block = self.encode_block(message[message_index:message_index + self.BLOCK_SZ])
+			new_block = self.encode_block(message[message_index:message_index + consts.BLOCK_SZ])
 			new_block = self.add_header(message_block=new_block, header_type='DATA')
 			message_blocks.append(new_block)
-			message_index += self.BLOCK_SZ
+			message_index += consts.BLOCK_SZ
 
 		bounce_endpoint = unused_endpoints.pop()
 		message_init = self.generate_init(message, self.receiver_message_port)
-		self.send_init(message_init, bounce_endpoint)
+		self.send_init(init_data=message_init, bounce_address=bounce_endpoint)
 		time.sleep(1)
 		used_endpoints.append(bounce_endpoint)
 		for block in message_blocks:
@@ -88,10 +85,15 @@ class Block_Sender(Sender):
 			block_result = self.send_block(block=block, bounce_address=bounce_endpoint)
 			used_endpoints.append(bounce_endpoint)
 			print(f"Block send success: {block_result}")
+		if not unused_endpoints:
+			bounce_endpoint = used_endpoints.pop()
+		else:
+			bounce_endpoint = unused_endpoints.pop()
+		self.send_end(bounce_address=bounce_endpoint)
 
 	def encode_block(self, letters: str) -> int:
 		encoded_block = 0
-		for i in range(self.BLOCK_SZ-1):
+		for i in range(consts.BLOCK_SZ-1):
 			encoded_block = int(encoded_block) | ord(letters[i])
 			encoded_block = encoded_block << 8
 		encoded_block = int(encoded_block) | ord(letters[-1])
@@ -99,9 +101,9 @@ class Block_Sender(Sender):
 
 	def decode_block(self, encoded_block: int) -> str:
 		message_block = []
-		for i in range(self.BLOCK_SZ):
-			temp = encoded_block & self.CHAR_MASKS[i+1]
-			shiftby = ((self.BLOCK_SZ-1)-i)*8
+		for i in range(consts.BLOCK_SZ):
+			temp = encoded_block & consts.CHAR_MASKS[i+1]
+			shiftby = ((consts.BLOCK_SZ-1)-i)*8
 			message_block.append(temp >> shiftby)
 
 		message_string = []
@@ -109,15 +111,15 @@ class Block_Sender(Sender):
 		return "".join(message_string) 
 
 	def add_header(self, message_block: int, header_type: str) -> int:
-		return message_block | self.CONTROL_HEADERS[header_type]
+		return message_block | consts.CONTROL_HEADERS[header_type]
 
 	def get_header(self, message_block: int) -> int:
-		return (message_block & self.CHAR_MASKS[0]) >> 28
+		return (message_block & consts.CHAR_MASKS[0]) >> 28
 
 	def generate_init(self, message: str, port: int) -> int:
 		msg_length = len(message)
 		init_packet = 0x00000000
-		init_packet = init_packet | self.TYPE_CODE
+		init_packet = init_packet | consts.TYPE_CODE
 		init_packet = init_packet << 12
 		init_packet = init_packet | msg_length
 		init_packet = init_packet << 16
@@ -133,7 +135,11 @@ class Block_Sender(Sender):
 	def send_init(self, init_data: int, bounce_address: str) -> bool:
 		print(f"Sending block: {init_data}")
 		send(IP(src=self.receiver_address, dst=bounce_address)/TCP(sport=self.receiver_init_port, dport=self.bounce_port, seq=init_data, flags="S"))
-		return True		
+		return True	
+
+	def send_end(self, bounce_address: str) -> bool:
+		send(IP(src=self.receiver_address, dst=bounce_address)/TCP(sport=self.receiver_message_port, dport=self.bounce_port, seq=consts.CONTROL_HEADERS['END'], flags="S"))
+		return True
 
 
 
@@ -141,7 +147,7 @@ if __name__ == "__main__":
 	be = ['8.8.8.8', '151.101.64.81', '35.157.233.18']
 	pi = ['192.168.1.121']
 
-	bs = Block_Sender(receiver_address="192.168.1.70", receiver_message_port=3000, receiver_init_port=1337, bounce_endpoints=be, bounce_port=443)
+	bs = Block_Sender(receiver_address="192.168.1.70", receiver_message_port=3000, receiver_init_port=1337, bounce_endpoints=pi, bounce_port=443)
 
 	innit = bs.generate_init("Hello World!", 80)
 
@@ -149,6 +155,6 @@ if __name__ == "__main__":
 
 	#bs.send_block(innit, '192.168.1.121')
 
-	bs.send("Hello World!")
+	bs.send("'Twas brillig, and the slithy toves. Did gyre and gimble in the wabe: All mimsy were the borogoves, And the mome raths outgrabe.")
 
 	#bs.send(123)
