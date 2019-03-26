@@ -66,6 +66,13 @@ class Block_Sender(Sender):
 
 		assert(type(message) == str), "Message for Block_Sender must be a string."
 
+		pad_length = len(message) % 3
+		if pad_length != 0:
+			if pad_length == 1:
+				message += chr(0)
+			elif pad_length == 2:
+				message += (chr(0))*2
+
 		while message_index < len(message):
 			new_block = self.encode_block(message[message_index:message_index + consts.BLOCK_SZ])
 			new_block = self.add_header(message_block=new_block, header_type='DATA')
@@ -85,10 +92,12 @@ class Block_Sender(Sender):
 			block_result = self.send_block(block=block, bounce_address=bounce_endpoint)
 			used_endpoints.append(bounce_endpoint)
 			print(f"Block send success: {block_result}")
+			time.sleep(0.2)
 		if not unused_endpoints:
 			bounce_endpoint = used_endpoints.pop()
 		else:
 			bounce_endpoint = unused_endpoints.pop()
+		time.sleep(1)
 		self.send_end(bounce_address=bounce_endpoint)
 
 	def encode_block(self, letters: str) -> int:
@@ -129,16 +138,16 @@ class Block_Sender(Sender):
 
 	def send_block(self, block: int, bounce_address: str) -> bool:
 		print(f"Sending block: {block} ----> {self.decode_block(block)} to {bounce_address}\nHeader: {self.get_header(block)}")
-		send(IP(src=self.receiver_address, dst=bounce_address)/TCP(sport=self.receiver_message_port, dport=self.bounce_port, seq=block, flags="S"))
+		send(IP(src=self.receiver_address, dst=bounce_address)/TCP(sport=self.receiver_message_port, dport=self.bounce_port, seq=block, flags="S"), verbose=False)
 		return True
 
 	def send_init(self, init_data: int, bounce_address: str) -> bool:
 		print(f"Sending block: {init_data}")
-		send(IP(src=self.receiver_address, dst=bounce_address)/TCP(sport=self.receiver_init_port, dport=self.bounce_port, seq=init_data, flags="S"))
+		send(IP(src=self.receiver_address, dst=bounce_address)/TCP(sport=self.receiver_init_port, dport=self.bounce_port, seq=init_data, flags="S"), verbose=False)
 		return True	
 
 	def send_end(self, bounce_address: str) -> bool:
-		send(IP(src=self.receiver_address, dst=bounce_address)/TCP(sport=self.receiver_message_port, dport=self.bounce_port, seq=consts.CONTROL_HEADERS['END'], flags="S"))
+		send(IP(src=self.receiver_address, dst=bounce_address)/TCP(sport=self.receiver_message_port, dport=self.bounce_port, seq=consts.CONTROL_HEADERS['END'], flags="S"), verbose=False)
 		return True
 
 
