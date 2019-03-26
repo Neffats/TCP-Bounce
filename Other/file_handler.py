@@ -10,7 +10,7 @@ e = []
 
 		
 	
-def encode_chunk(letters):
+def encode_chunk(letters: str) -> int:
 	encoded = 0
 	for i in range(len(letters)-1):
 		encoded = int(encoded) | ord(letters[i])
@@ -24,7 +24,7 @@ a = encode_chunk(MSG)
 print(encode_chunk(MSG))
 
 
-def decode_chunk(encoded):
+def decode_chunk(encoded: int) -> str:
 	message_chunk = []
 	for i in range(CHUNK_SZ):
 		temp = encoded & MASKS[i]
