@@ -67,11 +67,8 @@ class Block_Sender(Sender):
 		assert(type(message) == str), "Message for Block_Sender must be a string."
 
 		pad_length = len(message) % 3
-		if pad_length != 0:
-			if pad_length == 1:
-				message += chr(0)
-			elif pad_length == 2:
-				message += (chr(0))*2
+
+		message += (chr(0))*pad_length
 
 		while message_index < len(message):
 			new_block = self.encode_block(message[message_index:message_index + consts.BLOCK_SZ])
@@ -102,7 +99,7 @@ class Block_Sender(Sender):
 
 	def encode_block(self, letters: str) -> int:
 		encoded_block = 0
-		for i in range(consts.BLOCK_SZ-1):
+		for i in range(consts.BLOCK_SZ-1):	
 			encoded_block = int(encoded_block) | ord(letters[i])
 			encoded_block = encoded_block << 8
 		encoded_block = int(encoded_block) | ord(letters[-1])
