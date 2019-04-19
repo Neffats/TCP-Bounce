@@ -14,7 +14,7 @@ class Server():
 		self.reciever_queue = queue.Queue()
 		self.end = False
 
-	def run(self) -> None:
+	def run(self, handler) -> None:
 		logging.debug("Starting main listener thread....")
 		self.main_listener = MainListener(listen_port=self.listen_port, root_queue=self.reciever_queue)
 		self.main_listener.daemon = True
@@ -29,6 +29,8 @@ class Server():
 			try:
 				msg = self.reciever_queue.get_nowait()
 				print(msg)
+				handler(msg)
+				
 			except queue.Empty:
 				continue
 
@@ -196,7 +198,11 @@ class BlockSessionListener(threading.Thread):
 	def get_header(self, message_block: int) -> int:
 		return (message_block & consts.CHAR_MASKS[0]) >> 28
 
+
+def print_msg(msg):
+	print(msg)
+
 if __name__ == '__main__':
 	logging.getLogger().setLevel(logging.DEBUG)
 	serv = Server(listen_port=1337)
-	serv.run()
+	serv.run(handler=print_msg)
