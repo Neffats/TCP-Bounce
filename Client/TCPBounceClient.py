@@ -59,12 +59,13 @@ class Block_Sender(Sender):
 		return self.receiver_address
 
 	def send(self, message: str):	
+		if type(message) != str:
+			raise TypeError("Message for Block_Sender must be a string.")
+		
 		message_blocks = []
 		message_index = 0
 		unused_endpoints = self.bounce_endpoints[:]
 		used_endpoints = []
-
-		assert(type(message) == str), "Message for Block_Sender must be a string."
 
 		pad_length = len(message) % 3
 
@@ -82,6 +83,7 @@ class Block_Sender(Sender):
 		time.sleep(1)
 		used_endpoints.append(bounce_endpoint)
 		for block in message_blocks:
+			# If all endpoints have been used, re
 			if not unused_endpoints:
 				unused_endpoints = used_endpoints[:]
 				used_endpoints = []
@@ -97,7 +99,11 @@ class Block_Sender(Sender):
 		time.sleep(1)
 		self.send_end(bounce_address=bounce_endpoint)
 
+	# Takes a block of 3 characters.
 	def encode_block(self, letters: str) -> int:
+		if len(letters) > consts.BLOCK_SZ or len(letters) < consts.BLOCK_SZ:
+			raise ValueError(
+				f"Block of incorrect length passed to encoded_block(). Given: {len(letters)}, Want: {consts.BLOCK_SZ}",)
 		encoded_block = 0
 		for i in range(consts.BLOCK_SZ-1):	
 			encoded_block = int(encoded_block) | ord(letters[i])
