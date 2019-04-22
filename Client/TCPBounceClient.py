@@ -67,11 +67,11 @@ class Block_Sender(Sender):
 		unused_endpoints = self.bounce_endpoints[:]
 		used_endpoints = []
 
-		pad_length = len(message) % 3
+		pad_length = consts.BLOCK_SZ - (len(message) % consts.BLOCK_SZ) 
 
 		message += (chr(0))*pad_length
 
-		while message_index < len(message):
+		while message_index < len(message):	
 			new_block = self.encode_block(message[message_index:message_index + consts.BLOCK_SZ])
 			new_block = self.add_header(message_block=new_block, header_type='DATA')
 			message_blocks.append(new_block)
@@ -83,7 +83,7 @@ class Block_Sender(Sender):
 		time.sleep(1)
 		used_endpoints.append(bounce_endpoint)
 		for block in message_blocks:
-			# If all endpoints have been used, re
+			# If all endpoints have been used, refresh the list
 			if not unused_endpoints:
 				unused_endpoints = used_endpoints[:]
 				used_endpoints = []
@@ -103,7 +103,7 @@ class Block_Sender(Sender):
 	def encode_block(self, letters: str) -> int:
 		if len(letters) > consts.BLOCK_SZ or len(letters) < consts.BLOCK_SZ:
 			raise ValueError(
-				f"Block of incorrect length passed to encoded_block(). Given: {len(letters)}, Want: {consts.BLOCK_SZ}",)
+				f"Block of incorrect length passed to encoded_block(). Given: {len(letters)}, Want: {consts.BLOCK_SZ} Data: {letters}",)
 		encoded_block = 0
 		for i in range(consts.BLOCK_SZ-1):	
 			encoded_block = int(encoded_block) | ord(letters[i])
