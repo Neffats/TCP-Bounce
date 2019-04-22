@@ -13,7 +13,7 @@ class TestBlockSender(unittest.TestCase):
 
 		self.client = TCPBounceClient.Block_Sender(
 			# TODO: Get localhost IP address.
-			receiver_address="192.168.1.70", 
+			receiver_address="127.0.0.1", 
 			receiver_message_port=5001, 
 			receiver_init_port=5000, 
 			bounce_endpoints=bouncepoints_raw, 
