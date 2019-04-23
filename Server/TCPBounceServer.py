@@ -3,6 +3,7 @@ from scapy.all import *
 import time
 import os
 import threading
+import multiprocessing
 import queue
 import consts
 import keyboard
@@ -81,6 +82,7 @@ class MainListener(threading.Thread):
 		new_session.daemon = True
 		new_session.start()
 
+		logging.debug(f"Process started: {new_session.is_alive()}")
 		self.sessions.append(new_session)
 
 	def send_RST(self, address: str, port: int) -> None:

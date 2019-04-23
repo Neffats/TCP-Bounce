@@ -5,12 +5,13 @@ from scapy.all import *
 import time
 import threading
 import consts as tcpconsts
+import logging
 
 
 class TestBlockSender(unittest.TestCase):
 	def setUp(self):
 		bouncepoints_raw = ["127.0.0.1"]
-
+		logging.getLogger().setLevel(logging.CRITICAL)
 		self.client = TCPBounceClient.Block_Sender(
 			# TODO: Get localhost IP address.
 			receiver_address="127.0.0.1", 

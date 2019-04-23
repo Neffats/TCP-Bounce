@@ -7,6 +7,7 @@ import socket
 import os
 import url_retreiver
 import consts
+import logging
 
 
 '''
@@ -90,7 +91,7 @@ class Block_Sender(Sender):
 			bounce_endpoint = unused_endpoints.pop()
 			block_result = self.send_block(block=block, bounce_address=bounce_endpoint)
 			used_endpoints.append(bounce_endpoint)
-			print(f"Block send success: {block_result}")
+			logging.info(f"Block send success: {block_result}")
 			time.sleep(0.2)
 		if not unused_endpoints:
 			bounce_endpoint = used_endpoints.pop()
@@ -140,12 +141,12 @@ class Block_Sender(Sender):
 		return init_packet
 
 	def send_block(self, block: int, bounce_address: str) -> bool:
-		print(f"Sending block: {block} ----> {self.decode_block(block)} to {bounce_address}\nHeader: {self.get_header(block)}")
+		logging.info(f"Sending block: {block} ----> {self.decode_block(block)} to {bounce_address}\nHeader: {self.get_header(block)}")
 		send(IP(src=self.receiver_address, dst=bounce_address)/TCP(sport=self.receiver_message_port, dport=self.bounce_port, seq=block, flags="S"), verbose=False)
 		return True
 
 	def send_init(self, init_data: int, bounce_address: str) -> bool:
-		print(f"Sending block: {init_data}")
+		logging.info(f"Sending block: {init_data}")
 		send(IP(src=self.receiver_address, dst=bounce_address)/TCP(sport=self.receiver_init_port, dport=self.bounce_port, seq=init_data, flags="S"), verbose=False)
 		return True	
 

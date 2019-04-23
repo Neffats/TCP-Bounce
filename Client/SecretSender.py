@@ -1,6 +1,8 @@
 import TCPBounceClient
 import sys
+import logging
 
+logging.getLogger().setLevel(logging.DEBUG)
 
 msg = sys.argv[1]
 bouncepoints_src = sys.argv[2]
@@ -15,7 +17,11 @@ for x in bouncepoints_raw:
 
 
 
-sender = TCPBounceClient.Block_Sender(receiver_address="192.168.1.70", receiver_message_port=3000, receiver_init_port=2003, bounce_endpoints=bouncepoints, bounce_port=443)
+sender = TCPBounceClient.Block_Sender(receiver_address="192.168.1.70", 
+	receiver_message_port=3000, 
+	receiver_init_port=2003, 
+	bounce_endpoints=bouncepoints, 
+	bounce_port=443)
 
 
 sender.send(msg)
