@@ -8,12 +8,12 @@ import queue
 import consts
 import keyboard
 
-
 class Server():
 	def __init__(self, listen_port: int) -> None:
 		self.listen_port = listen_port
 		self.reciever_queue = queue.Queue()
 		self.end = False
+		self.handlers = {}
 
 	def run(self, handler) -> None:
 		logging.debug("Starting main listener thread....")
@@ -28,9 +28,10 @@ class Server():
 				self.end = True
 				break
 			try:
-				msg = self.reciever_queue.get_nowait()
-				print(msg)
-				handler(msg)
+				package = self.reciever_queue.get_nowait()
+				print(package.payload)
+				handle_function = self.handlers.get(package.type)
+				handle_function(package.payload)
 				
 			except queue.Empty:
 				continue
@@ -40,6 +41,12 @@ class Server():
 
 	def kill(self):
 		self.main_listener.kill()
+
+	def block_handler(self):
+		def decorator(f):
+			self.handlers[consts.BLOCK_TYPE] = f
+			return f
+		return decorator
 
 
 class MainListener(threading.Thread):
@@ -184,7 +191,8 @@ class BlockSessionListener(threading.Thread):
 
 			if header == consts.CONTROL_HEADERS['END']:
 				logging.info("Received END header. Message: %s", self.message)
-				self.root_th_queue.put(self.message)
+				pack = Package(data_type=consts.BLOCK_TYPE, payload=self.message)
+				self.root_th_queue.put(pack)
 				self.kill()
 				break
 			self.message += self.decode_block(segment)
@@ -201,6 +209,12 @@ class BlockSessionListener(threading.Thread):
 		return (message_block & consts.CHAR_MASKS[0]) >> 28
 
 
+class Package():
+	def __init__(self, data_type, payload):
+		self.type = data_type
+		self.payload = payload
+
+
 def print_msg(msg):
 	print(msg)
 
@@ -208,3 +222,5 @@ if __name__ == '__main__':
 	logging.getLogger().setLevel(logging.DEBUG)
 	serv = Server(listen_port=1337)
 	serv.run(handler=print_msg)
+
+

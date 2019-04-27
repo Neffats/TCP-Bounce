@@ -8,6 +8,7 @@ import os
 import url_retreiver
 import consts
 import logging
+import random
 
 
 '''
@@ -66,6 +67,7 @@ class Block_Sender(Sender):
 		message_blocks = []
 		message_index = 0
 		unused_endpoints = self.bounce_endpoints[:]
+		random.shuffle(unused_endpoints)
 		used_endpoints = []
 
 		pad_length = consts.BLOCK_SZ - (len(message) % consts.BLOCK_SZ) 
@@ -87,6 +89,7 @@ class Block_Sender(Sender):
 			# If all endpoints have been used, refresh the list
 			if not unused_endpoints:
 				unused_endpoints = used_endpoints[:]
+				random.shuffle(unused_endpoints)
 				used_endpoints = []
 			bounce_endpoint = unused_endpoints.pop()
 			block_result = self.send_block(block=block, bounce_address=bounce_endpoint)

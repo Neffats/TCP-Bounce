@@ -16,7 +16,6 @@ for x in bouncepoints_raw:
 	bouncepoints.append(x.strip("\n"))
 
 
-
 sender = TCPBounceClient.Block_Sender(receiver_address="192.168.1.70", 
 	receiver_message_port=3000, 
 	receiver_init_port=2003, 
