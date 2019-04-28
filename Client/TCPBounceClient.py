@@ -118,7 +118,6 @@ class Block_Sender(Sender):
 			used_endpoints.append(bounce_endpoint)
 			logging.info(f"Block send success: {block_result}")
 			time.sleep(0.2)
-			return
 		if not unused_endpoints:
 			bounce_endpoint = used_endpoints.pop()
 		else:
