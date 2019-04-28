@@ -1,6 +1,7 @@
 from scapy.all import *
 import time
 from bs4 import BeautifulSoup
+import binascii
 import requests
 import re
 import socket
@@ -74,17 +75,38 @@ class Block_Sender(Sender):
 
 		message += (chr(0))*pad_length
 
+		# Convert/Encode message into blocks ready to be sent.
 		while message_index < len(message):	
 			new_block = self.encode_block(message[message_index:message_index + consts.BLOCK_SZ])
 			new_block = self.add_header(message_block=new_block, header_type='DATA')
 			message_blocks.append(new_block)
 			message_index += consts.BLOCK_SZ
 
+		# Send the init packet to set up the session.
 		bounce_endpoint = unused_endpoints.pop()
 		message_init = self.generate_init(message, self.receiver_message_port)
 		self.send_init(init_data=message_init, bounce_address=bounce_endpoint)
-		time.sleep(1)
 		used_endpoints.append(bounce_endpoint)
+
+		time.sleep(1)
+
+		if not unused_endpoints:
+			unused_endpoints = used_endpoints[:]
+			random.shuffle(unused_endpoints)
+			used_endpoints = []
+
+		# Generate and send the message CRC32 checksum.
+		# Server will use this to check for errors or missing packets.
+		msg_checksum = int(self.gen_crc(message))
+		logging.info(f"Message checksum: {msg_checksum}")
+		bounce_endpoint = unused_endpoints.pop()
+		block_result = self.send_block(block=msg_checksum, bounce_address=bounce_endpoint)
+		used_endpoints.append(bounce_endpoint)
+		logging.info(f"Checksum sent.")
+
+		time.sleep(0.2)
+		
+		# Send the message blocks to the server.
 		for block in message_blocks:
 			# If all endpoints have been used, refresh the list
 			if not unused_endpoints:
@@ -96,11 +118,15 @@ class Block_Sender(Sender):
 			used_endpoints.append(bounce_endpoint)
 			logging.info(f"Block send success: {block_result}")
 			time.sleep(0.2)
+			return
 		if not unused_endpoints:
 			bounce_endpoint = used_endpoints.pop()
 		else:
 			bounce_endpoint = unused_endpoints.pop()
 		time.sleep(1)
+
+		# Send end packet to signify the end of the message. This is how the server
+		# knows that the session has ended.
 		self.send_end(bounce_address=bounce_endpoint)
 
 	# Takes a block of 3 characters.
@@ -156,6 +182,9 @@ class Block_Sender(Sender):
 	def send_end(self, bounce_address: str) -> bool:
 		send(IP(src=self.receiver_address, dst=bounce_address)/TCP(sport=self.receiver_message_port, dport=self.bounce_port, seq=consts.CONTROL_HEADERS['END'], flags="S"), verbose=False)
 		return True
+
+	def gen_crc(self, message):
+		return binascii.crc32(bytes(message, 'utf-8'))
 
 
 

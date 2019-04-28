@@ -5,16 +5,17 @@ import requests
 import re
 import socket
 import os
+import logging
 
 class URL_Retreiver():
         
-    def __init__(self, source: str):
+    def __init__(self, source: str, filename: str):
         self.source = source
         self.URLs = []
         self.pageSoup = None
         self.pattern = re.compile(r'\w*\.\w*')
         self.ipAddresses = []
-        self.filename = 'ipAddresses.txt'
+        self.filename = filename
         self.ipAddressesRanked = {}
         self.goodIPs = []
     
@@ -52,10 +53,15 @@ class URL_Retreiver():
         if os.path.isfile(self.filename):
             self.import_file(self.filename)
         else:
+            logging.info("Getting webpage.")
             self.get_page()
+            logging.info("Parsing webpage.")
             self.parse_page()
+            logging.info("Resolving webpage.")
             self.get_ip()
+            logging.info("Testing addresses.")
             self.test_Addresses()
+            logging.info("Writing good addresses to file.")
             self.write_to_file(self.filename)
         print(len(self.ipAddresses))
 

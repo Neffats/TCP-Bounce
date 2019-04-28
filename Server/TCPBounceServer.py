@@ -1,6 +1,7 @@
 import logging
 from scapy.all import *
-import time
+import binascii
+import datetime
 import os
 import threading
 import multiprocessing
@@ -16,6 +17,8 @@ class Server():
 		self.handlers = {}
 
 	def run(self, handler) -> None:
+		# Kick off the main listener thread, this will listen for init messages from clients.
+		# It will start session threads based on the init packets it receives.
 		logging.debug("Starting main listener thread....")
 		self.main_listener = MainListener(listen_port=self.listen_port, root_queue=self.reciever_queue)
 		self.main_listener.daemon = True
@@ -31,7 +34,7 @@ class Server():
 				package = self.reciever_queue.get_nowait()
 				print(package.payload)
 				handle_function = self.handlers.get(package.type)
-				handle_function(package.payload)
+				handle_function(package)
 				
 			except queue.Empty:
 				continue
@@ -42,6 +45,8 @@ class Server():
 	def kill(self):
 		self.main_listener.kill()
 
+	# Use decorators to define how to handle messages received.
+	# This is specifically for the BlockSessionListener implementation.
 	def block_handler(self):
 		def decorator(f):
 			self.handlers[consts.BLOCK_TYPE] = f
@@ -136,6 +141,8 @@ class BlockSessionListener(threading.Thread):
 
 
 	def run(self) -> None:
+		self.set_timeout()
+
 		self.listen_th_end = threading.Event()
 		self.process_th_end = threading.Event()
 
@@ -155,10 +162,14 @@ class BlockSessionListener(threading.Thread):
 
 	def start_listen_th(self) -> None:
 		logging.debug(f"Session listener thread started on port {self.listen_port}....")
+		logging.debug(f"Listening for checksum packet.")
+		sniff(filter=f'tcp and dst port {self.listen_port}', prn=self.decode_crc, count=1)
+		logging.debug(f"Listening for message data.")
 		while not self.listen_th_end.is_set() and not self.process_th_end.is_set():
 			sniff(filter=f'tcp and dst port {self.listen_port}', prn=self.handle_msg_packet)
 
 	def handle_msg_packet(self, packet) -> None:
+		self.set_timeout()
 		logging.info(f"Packet received. 	FROM: {packet[IP].src}		DATA: {packet[TCP].ack - 1}")
 		self.comms_queue.put(int(packet[TCP].ack - 1))
 		self.send_RST(address=packet[IP].src, port=packet[TCP].sport)
@@ -176,23 +187,32 @@ class BlockSessionListener(threading.Thread):
 		logging.debug(f'Block decoded: {"".join(message_string)}')
 		return "".join(message_string) 	
 
+	def decode_crc(self, packet):
+		self.set_timeout()
+		logging.info(f"Message CRC checksum: {packet[TCP].ack - 1}")
+		self.rcv_checksum = int(packet[TCP].ack - 1)
+		self.send_RST(address=packet[IP].src, port=packet[TCP].sport)
+
 	def start_process_th(self) -> None:
 		logging.debug(f"Session processor thread started....")
 		self.message = ''
 
 		while not self.process_th_end.is_set() and not self.process_th_end.is_set():
+			self.check_timeout()
 			try:
-				segment = self.comms_queue.get()
+				segment = self.comms_queue.get_nowait()
 			except queue.Empty:
-				logging.info("Session communications queue is empty...")
+				#logging.info("Session communications queue is empty...")
 				continue
 
 			header = self.get_header(segment)
 
 			if header == consts.CONTROL_HEADERS['END']:
 				logging.info("Received END header. Message: %s", self.message)
-				pack = Package(data_type=consts.BLOCK_TYPE, payload=self.message)
+				gen_checksum = int(binascii.crc32(bytes(self.message, 'utf-8')))
+				pack = Package(data_type=consts.BLOCK_TYPE, payload=self.message, rcv_checksum=self.rcv_checksum, gen_checksum=gen_checksum)
 				self.root_th_queue.put(pack)
+				logging.info("Killing session thread.")
 				self.kill()
 				break
 			self.message += self.decode_block(segment)
@@ -208,11 +228,22 @@ class BlockSessionListener(threading.Thread):
 	def get_header(self, message_block: int) -> int:
 		return (message_block & consts.CHAR_MASKS[0]) >> 28
 
+	def set_timeout(self):
+		self.timeout = datetime.datetime.now()
+
+	def check_timeout(self):
+		time_delta = datetime.datetime.now() - self.timeout
+		if time_delta.total_seconds() > 30:
+			logging.error("Session timedout. No packets received in the last 30 seconds.")
+			self.kill()
+
 
 class Package():
-	def __init__(self, data_type, payload):
+	def __init__(self, data_type, payload, rcv_checksum, gen_checksum):
 		self.type = data_type
 		self.payload = payload
+		self.rcv_checksum = rcv_checksum
+		self.gen_checksum = gen_checksum
 
 
 def print_msg(msg):

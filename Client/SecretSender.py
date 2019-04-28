@@ -15,6 +15,7 @@ bouncepoints = []
 for x in bouncepoints_raw:
 	bouncepoints.append(x.strip("\n"))
 
+#bouncepoints = ["192.168.1.70"]
 
 sender = TCPBounceClient.Block_Sender(receiver_address="192.168.1.70", 
 	receiver_message_port=3000, 
