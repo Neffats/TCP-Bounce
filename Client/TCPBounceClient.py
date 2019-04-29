@@ -2,7 +2,6 @@ from scapy.all import *
 import time
 from bs4 import BeautifulSoup
 import binascii
-import requests
 import re
 import socket
 import os
