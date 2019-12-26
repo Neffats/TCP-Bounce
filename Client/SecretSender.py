@@ -17,7 +17,7 @@ for x in bouncepoints_raw:
 
 #bouncepoints = ["192.168.1.70"]
 
-sender = TCPBounceClient.Block_Sender(receiver_address="192.168.1.70", 
+sender = TCPBounceClient.Block_Sender(receiver_address="138.68.171.178", 
 	receiver_message_port=3000, 
 	receiver_init_port=2003, 
 	bounce_endpoints=bouncepoints, 
