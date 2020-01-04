@@ -18,7 +18,7 @@ When the server receives a packet it will send a reset packet to the source addr
 
 The TCPBounceServer uses decorators to handle the received packets, similar to the way flask does things. User must decorate their function with the block_handler() decorator function:
 
-'''python
+```python
 import TCPBounceServer
 import logging
 import datetime
@@ -43,7 +43,7 @@ def write_msg(package):
 
 if __name__ == "__main__":
 	bounce_server.run()
-'''
+```
 
 This will pass a Package() object to the function which contains the message type, message, the checksum received and the checksum the server generated. The server provides both checksums so that the user can decide how to hanlde mismatching messages. 
 
