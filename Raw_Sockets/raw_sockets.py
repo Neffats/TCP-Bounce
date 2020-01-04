@@ -125,8 +125,8 @@ if __name__ == "__main__":
 
 			if ip_header.protocol == "TCP":
 				tcp_header = TCP(raw_buffer[20:40])
-				if ip_header.src_address != "192.168.1.70":
-					print(f"Protocol: {ip_header.protocol} {ip_header.src_address}:{tcp_header.src_port} -> {ip_header.dst_address}:{tcp_header.dst_port}: ({tcp_header.sequence}/{tcp_header.acknowledge})")
+				#if ip_header.src_address != "192.168.1.70":
+				print(f"Protocol: {ip_header.protocol} {ip_header.src_address}:{tcp_header.src_port} -> {ip_header.dst_address}:{tcp_header.dst_port}: ({tcp_header.sequence}/{tcp_header.acknowledge})")
 
 	except KeyboardInterrupt:
 		if os.name == "nt":

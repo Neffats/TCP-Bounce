@@ -16,7 +16,7 @@ class Server():
 		self.end = False
 		self.handlers = {}
 
-	def run(self, handler) -> None:
+	def run(self) -> None:
 		# Kick off the main listener thread, this will listen for init messages from clients.
 		# It will start session threads based on the init packets it receives.
 		logging.debug("Starting main listener thread....")

@@ -19,4 +19,4 @@ def write_msg(package):
 
 
 if __name__ == "__main__":
-	bounce_server.run(handler=write_msg)
+	bounce_server.run()
